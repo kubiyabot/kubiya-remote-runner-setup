@@ -1,0 +1,67 @@
+# Default values for kubiya-remote-runner.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: kubiya/runner
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: latest
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+resources: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+additionalEnvVars:
+  - name: gateway_url
+    value: http://gateway-external.openfaas:8080
+
+additionalVolumes: {}
+
+additionalVolumeMounts: {}
+
+
+KubiyaNatsJwtSecretName: kubiya-nats-jwt
+OpenFaasSecretName: open-faas-creds
+
+secrets:
+  nats:
+    natsJWT: ""
+  openfaas:
+    user: ""
+    password: ""
+
+kubiyaOrganizaion: kubiyaOrganizaion
+kubiyaRunnerName: kubiyaRunnerName

@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubiya-remote-runner.fullname" . }}
+  labels:
+    {{- include "kubiya-remote-runner.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "kubiya-remote-runner.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "kubiya-remote-runner.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        {{- if $.Values.additionalVolumes }}
+        {{- toYaml $.Values.additionalVolumes | nindent 8}}  
+        {{- end }}
+        - name: nats-jwt-secret
+          secret:
+            secretName: kubiya-nats-jwt
+        - name: faas-secret
+          secret:
+            secretName: open-faas-creds
+            items:
+              - key: user
+                path: user_filename.txt
+              - key: password
+                path: user_password.txt
+      serviceAccountName: {{ include "kubiya-remote-runner.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          {{- with .Values.additionalEnvVars }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+            - name: NATS_URL
+              value: tls://connect.ngs.global
+            - name: topics
+              value: {{ .Values.kubiyaOrganizaion }}.runner.{{ .Values.kubiyaRunnerName }}
+            - name: secret_mount_path
+              value: /creds/
+            - name: user_filename
+              value: faas/user_filename.txt
+            - name: pass_filename
+              value: faas/user_password.txt
+            - name: NATS_CREDENTIALS_FILE
+              value: creds/nats/natsJWT
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: nats-jwt-secret
+              mountPath: /creds/nats
+            - name: faas-secret
+              mountPath: /creds/faas
+            {{- if $.Values.additionalVolumeMounts }}
+            {{- toYaml $.Values.additionalVolumeMounts | nindent 12}}
+            {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
